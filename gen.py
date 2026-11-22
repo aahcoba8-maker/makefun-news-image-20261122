@@ -155,21 +155,20 @@ def pil_page():
     # Correct Australia outline separately (kept as numeric polygon coordinates).
     land_shapes[5]=[(112,-11),(130,-10),(150,-18),(153,-25),(145,-39),(128,-35),(115,-25)]
     for shp in land_shapes: polygon([xy(lon,lat) for lon,lat in shp],LAND)
-    # Pin collision placement: deterministic attempts down, then right, bounded to 32 px.
+    # Pin collision placement: process stories in order, down then right, bounded to 32 px.
     placed=[]
     for n,region,lat,lon,head,summary in STORIES[:41]:
         tx,ty=xy(lon,lat); px,py=tx,ty
-        for attempt in range(3):
-            if all((px-ox)**2+(py-oy)**2>=14**2 for ox,oy,_ in placed): break
-            if attempt==0: py+=16
-            elif attempt==1: px+=16
-            else: py+=16
-        px=max(39,min(985,px)); py=max(271,min(417,py))
-        # If the cluster remains dense, stable outward nudges keep every number distinct.
-        if any((px-ox)**2+(py-oy)**2<18**2 for ox,oy,_ in placed):
-            for dx,dy in ((16,0),(0,-16),(-16,0),(0,16),(16,16),(-16,16)):
-                qx=max(39,min(985,px+dx)); qy=max(271,min(417,py+dy))
-                if all((qx-ox)**2+(qy-oy)**2>=18**2 for ox,oy,_ in placed): px,py=qx,qy; break
+        collides=lambda x,y: any((x-ox)**2+(y-oy)**2<14**2 for ox,oy,_ in placed)
+        shifts=0
+        if collides(px,py):
+            qx,qy=px,py+16
+            if 28<=qx<=996 and 260<=qy<=428 and (qx-tx)**2+(qy-ty)**2<=32**2:
+                px,py=qx,qy; shifts+=1
+        if collides(px,py) and shifts<2:
+            qx,qy=px+16,py
+            if 28<=qx<=996 and 260<=qy<=428 and (qx-tx)**2+(qy-ty)**2<=32**2:
+                px,py=qx,qy; shifts+=1
         placed.append((px,py,n))
         circle(px,py,11,RED,'white',2)
         label=str(n); tw=measure(label,10,True)
